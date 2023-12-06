@@ -21,7 +21,7 @@ from lavila.models.models import VCLM_OPENAI_TIMESFORMER_LARGE_336PX_GPT2_XL
 from lavila.models.tokenizer import MyGPT2Tokenizer
 from eval_narrator import decode_one
 
-EXPT_NAME = "reproduce_v2"
+EXPT_NAME = "final"
 
 
 def main(args, model=None):

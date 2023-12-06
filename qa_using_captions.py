@@ -106,12 +106,14 @@ if __name__ == "__main__":
             }
         )
 
-    # print accuracy
-    print(
-        "Accuracy:",
-        sum([1 for a in answers if a["pred_answer"] == a["true_answer"]])
-        / len(answers),
-    )
-    print("Answers unparsible", sum([1 for a in answers if a["pred_answer"] == -1]))
-    print("Average tokens used:", sum(tokens_used) / len(tokens_used))
-    print("total tokens used (in thousands): (price: .3c/1k)", sum(tokens_used) / 1000)
+        # print accuracy
+        print(
+            "Accuracy:",
+            sum([1 for a in answers if a["pred_answer"] == a["true_answer"]])
+            / len(answers),
+        )
+        print("Answers unparsible", sum([1 for a in answers if a["pred_answer"] == -1]))
+        print("Average tokens used:", sum(tokens_used) / len(tokens_used))
+        print(
+            "total tokens used (in thousands): (price: .3c/1k)", sum(tokens_used) / 1000
+        )

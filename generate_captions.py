@@ -18,8 +18,7 @@ if __name__ == "__main__":
         subset_answers = json.load(f)
 
     model = None
-    # for question in tqdm(questions[:50]):
-    for q_uid in tqdm(list(subset_answers.keys())[:50]):
+    for question in tqdm(questions):
         question = [q for q in questions if q["q_uid"] == q_uid][0]
         q_uid = question["q_uid"]
         args.video_path = f"/workspace/videos/videos/{q_uid}.mp4"
