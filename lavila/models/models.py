@@ -22,12 +22,13 @@ from lavila.models.utils import remap_keys, rsetattr
 
 
 class VideoClassifier(nn.Module):
-    def __init__(self,
-                 vision_model: nn.Module,
-                 dropout: float,
-                 num_classes: int,
-                 **kwargs,
-                 ):
+    def __init__(
+        self,
+        vision_model: nn.Module,
+        dropout: float,
+        num_classes: int,
+        **kwargs,
+    ):
         super().__init__()
         self.visual = vision_model
         self.dropout = nn.Dropout(dropout)
@@ -46,17 +47,21 @@ class VideoClassifier(nn.Module):
 
 
 class VideoClassifierMultiHead(nn.Module):
-    def __init__(self,
-                 vision_model: nn.Module,
-                 dropout: float,
-                 num_classes_list: list,
-                 **kwargs,
-                 ):
+    def __init__(
+        self,
+        vision_model: nn.Module,
+        dropout: float,
+        num_classes_list: list,
+        **kwargs,
+    ):
         super().__init__()
         self.visual = vision_model
         self.dropout = nn.Dropout(dropout)
         self.fc_cls = nn.ModuleList(
-            [nn.Linear(vision_model.num_features, num_classes, bias=True) for num_classes in num_classes_list]
+            [
+                nn.Linear(vision_model.num_features, num_classes, bias=True)
+                for num_classes in num_classes_list
+            ]
         )
 
         for m in self.fc_cls:
@@ -73,20 +78,21 @@ class VideoClassifierMultiHead(nn.Module):
 
 
 class CLIP(nn.Module):
-    def __init__(self,
-                 embed_dim: int,
-                 # vision
-                 vision_width: int,
-                 vision_model: nn.Module,
-                 # text
-                 context_length: int,
-                 vocab_size: int,
-                 transformer_width: int,
-                 transformer_heads: int,
-                 transformer_layers: int,
-                 tempearture_init=0.07,
-                 **kwargs,
-                 ):
+    def __init__(
+        self,
+        embed_dim: int,
+        # vision
+        vision_width: int,
+        vision_model: nn.Module,
+        # text
+        context_length: int,
+        vocab_size: int,
+        transformer_width: int,
+        transformer_heads: int,
+        transformer_layers: int,
+        tempearture_init=0.07,
+        **kwargs,
+    ):
         super().__init__()
 
         self.context_length = context_length
@@ -102,8 +108,12 @@ class CLIP(nn.Module):
 
         self.vocab_size = vocab_size
         self.token_embedding = nn.Embedding(vocab_size, transformer_width)
-        self.positional_embedding = nn.Parameter(torch.empty(self.context_length, transformer_width))
-        self.ln_final = nn.LayerNorm(transformer_width)  # used to be `models.transformer.LayerNorm``
+        self.positional_embedding = nn.Parameter(
+            torch.empty(self.context_length, transformer_width)
+        )
+        self.ln_final = nn.LayerNorm(
+            transformer_width
+        )  # used to be `models.transformer.LayerNorm``
 
         self.image_projection = nn.Parameter(torch.empty(vision_width, embed_dim))
         self.text_projection = nn.Parameter(torch.empty(transformer_width, embed_dim))
@@ -116,8 +126,10 @@ class CLIP(nn.Module):
         nn.init.normal_(self.token_embedding.weight, std=0.02)
         nn.init.normal_(self.positional_embedding, std=0.01)
 
-        proj_std = (self.transformer.width ** -0.5) * ((2 * self.transformer.layers) ** -0.5)
-        attn_std = self.transformer.width ** -0.5
+        proj_std = (self.transformer.width**-0.5) * (
+            (2 * self.transformer.layers) ** -0.5
+        )
+        attn_std = self.transformer.width**-0.5
         fc_std = (2 * self.transformer.width) ** -0.5
         for block in self.transformer.resblocks:
             nn.init.normal_(block.attn.in_proj_weight, std=attn_std)
@@ -125,8 +137,8 @@ class CLIP(nn.Module):
             nn.init.normal_(block.mlp.c_fc.weight, std=fc_std)
             nn.init.normal_(block.mlp.c_proj.weight, std=proj_std)
 
-        nn.init.normal_(self.image_projection, std=self.vision_width ** -0.5)
-        nn.init.normal_(self.text_projection, std=self.transformer.width ** -0.5)
+        nn.init.normal_(self.image_projection, std=self.vision_width**-0.5)
+        nn.init.normal_(self.text_projection, std=self.transformer.width**-0.5)
 
     def build_attention_mask(self):
         # lazily create causal attention mask, with full attention between the vision tokens
@@ -168,25 +180,28 @@ class CLIP(nn.Module):
         if norm_embed:
             image_embed = F.normalize(image_embed, dim=-1)
             text_embed = F.normalize(text_embed, dim=-1)
-        return {'image_embed': image_embed,
-                'text_embed': text_embed,
-                'logit_scale': self.logit_scale.exp()}
+        return {
+            "image_embed": image_embed,
+            "text_embed": text_embed,
+            "logit_scale": self.logit_scale.exp(),
+        }
 
 
 class CLIP_HF(nn.Module):
-    def __init__(self,
-                 embed_dim: int,
-                 # vision
-                 vision_width: int,
-                 vision_model: nn.Module,
-                 # text
-                 text_width: int,
-                 text_model: nn.Module,
-                 text_use_cls_token: bool,
-                 text_is_regressive: bool,
-                 tempearture_init=0.07,
-                 **kwargs,
-                 ):
+    def __init__(
+        self,
+        embed_dim: int,
+        # vision
+        vision_width: int,
+        vision_model: nn.Module,
+        # text
+        text_width: int,
+        text_model: nn.Module,
+        text_use_cls_token: bool,
+        text_is_regressive: bool,
+        tempearture_init=0.07,
+        **kwargs,
+    ):
         super().__init__()
 
         self.vision_width = vision_width
@@ -196,20 +211,17 @@ class CLIP_HF(nn.Module):
         self.text_use_cls_token = text_use_cls_token
         self.text_is_regressive = text_is_regressive
 
-        if 'projection' not in kwargs:
-            self.projection = 'default'
+        if "projection" not in kwargs:
+            self.projection = "default"
         else:
-            self.projection = kwargs['projection']
-        if self.projection == 'default':
+            self.projection = kwargs["projection"]
+        if self.projection == "default":
             self.image_projection = nn.Parameter(torch.empty(vision_width, embed_dim))
             self.text_projection = nn.Parameter(torch.empty(text_width, embed_dim))
-        elif self.projection == 'frozen_in_time':
-            self.image_projection = nn.Sequential(
-                nn.Linear(vision_width, embed_dim)
-            )
+        elif self.projection == "frozen_in_time":
+            self.image_projection = nn.Sequential(nn.Linear(vision_width, embed_dim))
             self.text_projection = nn.Sequential(
-                nn.ReLU(),
-                nn.Linear(text_width, embed_dim)
+                nn.ReLU(), nn.Linear(text_width, embed_dim)
             )
         print("=> initialize initial temperature with {}".format(tempearture_init))
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / tempearture_init))
@@ -217,12 +229,14 @@ class CLIP_HF(nn.Module):
         self.initialize_parameters()
 
     def initialize_parameters(self):
-        if self.projection == 'default':
-            nn.init.normal_(self.image_projection, std=self.vision_width ** -0.5)
-            nn.init.normal_(self.text_projection, std=self.text_width ** -0.5)
+        if self.projection == "default":
+            nn.init.normal_(self.image_projection, std=self.vision_width**-0.5)
+            nn.init.normal_(self.text_projection, std=self.text_width**-0.5)
         else:
-            nn.init.normal_(self.image_projection[0].weight, std=self.vision_width ** -0.5)
-            nn.init.normal_(self.text_projection[1].weight, std=self.text_width ** -0.5)
+            nn.init.normal_(
+                self.image_projection[0].weight, std=self.vision_width**-0.5
+            )
+            nn.init.normal_(self.text_projection[1].weight, std=self.text_width**-0.5)
 
     def build_attention_mask(self):
         # lazily create causal attention mask, with full attention between the vision tokens
@@ -239,7 +253,7 @@ class CLIP_HF(nn.Module):
             x = x[0]
         if not apply_project:
             return x
-        if self.projection == 'default':
+        if self.projection == "default":
             x = x @ self.image_projection
         else:
             x = self.image_projection(x)
@@ -271,7 +285,7 @@ class CLIP_HF(nn.Module):
                 x = x[torch.arange(x.shape[0]), 0, :]
             else:
                 x = x.pooler_output
-        if self.projection == 'default':
+        if self.projection == "default":
             x = x @ self.text_projection
         else:
             x = self.text_projection(x)
@@ -280,62 +294,73 @@ class CLIP_HF(nn.Module):
 
     def forward(self, image, text, mask=None, use_checkpoint=False, norm_embed=False):
         image_embed = self.encode_image(image, use_checkpoint=use_checkpoint)
-        text_embed = self.encode_text(text, attention_mask=mask, use_checkpoint=use_checkpoint)
+        text_embed = self.encode_text(
+            text, attention_mask=mask, use_checkpoint=use_checkpoint
+        )
 
         if norm_embed:
             image_embed = F.normalize(image_embed, dim=-1)
             text_embed = F.normalize(text_embed, dim=-1)
-        return {'image_embed': image_embed,
-                'text_embed': text_embed,
-                'logit_scale': self.logit_scale.exp()}
+        return {
+            "image_embed": image_embed,
+            "text_embed": text_embed,
+            "logit_scale": self.logit_scale.exp(),
+        }
 
 
 def get_loss(model, args, tokenizer=None):
-    if model.startswith('CLIP'):
+    if model.startswith("CLIP"):
         return loss.CLIPLoss(
             use_vissl=args.contrastive_use_vissl,
             cache_labels=True,
             rank=args.rank,
             world_size=args.world_size,
         )
-    elif model.startswith('VCLM'):
+    elif model.startswith("VCLM"):
         return loss.CaptionLoss(tokenizer=tokenizer)
     else:
         raise NotImplementedError
 
 
 def get_metric_names(model):
-    if model.startswith('CLIP'):
-        return ['loss', 'clip_loss', 'clip_acc']
-    elif model.startswith('VCLM'):
-        return ['loss', 'caption_loss', 'caption_acc', 'ppl']
+    if model.startswith("CLIP"):
+        return ["loss", "clip_loss", "clip_acc"]
+    elif model.startswith("VCLM"):
+        return ["loss", "caption_loss", "caption_acc", "ppl"]
     else:
         raise NotImplementedError
 
 
 def CLIP_OPENAI_TIMESFORMER_BASE(
-    num_frames=4, timesformer_gated_xattn=False, drop_path_rate=0, timesformer_freeze_space=False,
-    temperature_init=0.07, project_embed_dim=256, **kwargs,
+    num_frames=4,
+    timesformer_gated_xattn=False,
+    drop_path_rate=0,
+    timesformer_freeze_space=False,
+    temperature_init=0.07,
+    project_embed_dim=256,
+    **kwargs,
 ):
     vision_model = SpaceTimeTransformer(
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         ln_pre=True,
         act_layer=QuickGELU,
         is_tanh_gating=timesformer_gated_xattn,
         drop_path_rate=drop_path_rate,
     )
-    clip_model, _ = load_openai_clip('ViT-B/16', 'cpu')
+    clip_model, _ = load_openai_clip("ViT-B/16", "cpu")
     print("=> Loading CLIP (ViT-B/16) weights")
-    remapped_state_dict = remap_keys(clip_model.visual.state_dict(), transformer_layers=12)
+    remapped_state_dict = remap_keys(
+        clip_model.visual.state_dict(), transformer_layers=12
+    )
     res = vision_model.load_state_dict(remapped_state_dict, strict=False)
     print(res)
     if timesformer_freeze_space:
         print("=> Freeze the space part in TimeSformer")
         freeze_list, unfreeze_list = [], []
         for n, p in vision_model.named_parameters():
-            if n not in remapped_state_dict or n == 'cls_token':
+            if n not in remapped_state_dict or n == "cls_token":
                 p.requires_grad = True
                 unfreeze_list.append(n)
             else:
@@ -357,14 +382,16 @@ def CLIP_OPENAI_TIMESFORMER_BASE(
         transformer_heads=8,
         transformer_layers=12,
         tempearture_init=temperature_init,
-        **kwargs
+        **kwargs,
     )
     model.transformer.load_state_dict(clip_model.transformer.state_dict())
     model.token_embedding.load_state_dict(clip_model.token_embedding.state_dict())
     model.positional_embedding.data.copy_(clip_model.positional_embedding.data)
     model.ln_final.load_state_dict(clip_model.ln_final.state_dict())
     if project_embed_dim == clip_model.text_projection.shape[1]:
-        print("=> Loading CLIP's text_projection, image_projection and logit_scale directly")
+        print(
+            "=> Loading CLIP's text_projection, image_projection and logit_scale directly"
+        )
         model.image_projection.data.copy_(clip_model.visual.proj.data)
         model.text_projection.data.copy_(clip_model.text_projection.data)
         model.logit_scale.data.copy_(clip_model.logit_scale.data)
@@ -372,30 +399,40 @@ def CLIP_OPENAI_TIMESFORMER_BASE(
 
 
 def CLIP_OPENAI_TIMESFORMER_LARGE(
-    num_frames=4, timesformer_gated_xattn=False, drop_path_rate=0, timesformer_freeze_space=False,
-    temperature_init=0.07, project_embed_dim=256, **kwargs,
+    num_frames=4,
+    timesformer_gated_xattn=False,
+    drop_path_rate=0,
+    timesformer_freeze_space=False,
+    temperature_init=0.07,
+    project_embed_dim=256,
+    **kwargs,
 ):
     vision_model = SpaceTimeTransformer(
-        img_size=224, patch_size=14,
-        embed_dim=1024, depth=24, num_heads=16,
+        img_size=224,
+        patch_size=14,
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         ln_pre=True,
         act_layer=QuickGELU,
         is_tanh_gating=timesformer_gated_xattn,
         drop_path_rate=drop_path_rate,
     )
-    clip_model, _ = load_openai_clip('ViT-L/14', 'cpu')
+    clip_model, _ = load_openai_clip("ViT-L/14", "cpu")
     print("=> Loading CLIP (ViT-L/14) weights")
-    remapped_state_dict = remap_keys(clip_model.visual.state_dict(), transformer_layers=24)
+    remapped_state_dict = remap_keys(
+        clip_model.visual.state_dict(), transformer_layers=24
+    )
     res = vision_model.load_state_dict(remapped_state_dict, strict=False)
     print(res)
     if timesformer_freeze_space:
         print("=> Freeze the space part in TimeSformer")
         freeze_list, unfreeze_list = [], []
         for n, p in vision_model.named_parameters():
-            if n not in remapped_state_dict or n == 'cls_token':
+            if n not in remapped_state_dict or n == "cls_token":
                 p.requires_grad = True
                 unfreeze_list.append(n)
             else:
@@ -417,14 +454,16 @@ def CLIP_OPENAI_TIMESFORMER_LARGE(
         transformer_heads=12,
         transformer_layers=12,
         tempearture_init=temperature_init,
-        **kwargs
+        **kwargs,
     )
     model.transformer.load_state_dict(clip_model.transformer.state_dict())
     model.token_embedding.load_state_dict(clip_model.token_embedding.state_dict())
     model.positional_embedding.data.copy_(clip_model.positional_embedding.data)
     model.ln_final.load_state_dict(clip_model.ln_final.state_dict())
     if project_embed_dim == clip_model.text_projection.shape[1]:
-        print("=> Loading CLIP's text_projection, image_projection and logit_scale directly")
+        print(
+            "=> Loading CLIP's text_projection, image_projection and logit_scale directly"
+        )
         model.image_projection.data.copy_(clip_model.visual.proj.data)
         model.text_projection.data.copy_(clip_model.text_projection.data)
         model.logit_scale.data.copy_(clip_model.logit_scale.data)
@@ -432,30 +471,40 @@ def CLIP_OPENAI_TIMESFORMER_LARGE(
 
 
 def CLIP_OPENAI_TIMESFORMER_LARGE_336PX(
-    num_frames=4, timesformer_gated_xattn=False, drop_path_rate=0, timesformer_freeze_space=False,
-    temperature_init=0.07, project_embed_dim=256, **kwargs,
+    num_frames=4,
+    timesformer_gated_xattn=False,
+    drop_path_rate=0,
+    timesformer_freeze_space=False,
+    temperature_init=0.07,
+    project_embed_dim=256,
+    **kwargs,
 ):
     vision_model = SpaceTimeTransformer(
-        img_size=336, patch_size=14,
-        embed_dim=1024, depth=24, num_heads=16,
+        img_size=336,
+        patch_size=14,
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         ln_pre=True,
         act_layer=QuickGELU,
         is_tanh_gating=timesformer_gated_xattn,
         drop_path_rate=drop_path_rate,
     )
-    clip_model, _ = load_openai_clip('ViT-L/14@336px', 'cpu')
+    clip_model, _ = load_openai_clip("ViT-L/14@336px", "cpu")
     print("=> Loading CLIP (ViT-L/14@336px) weights")
-    remapped_state_dict = remap_keys(clip_model.visual.state_dict(), transformer_layers=24)
+    remapped_state_dict = remap_keys(
+        clip_model.visual.state_dict(), transformer_layers=24
+    )
     res = vision_model.load_state_dict(remapped_state_dict, strict=False)
     print(res)
     if timesformer_freeze_space:
         print("=> Freeze the space part in TimeSformer")
         freeze_list, unfreeze_list = [], []
         for n, p in vision_model.named_parameters():
-            if n not in remapped_state_dict or n == 'cls_token':
+            if n not in remapped_state_dict or n == "cls_token":
                 p.requires_grad = True
                 unfreeze_list.append(n)
             else:
@@ -477,14 +526,16 @@ def CLIP_OPENAI_TIMESFORMER_LARGE_336PX(
         transformer_heads=12,
         transformer_layers=12,
         tempearture_init=temperature_init,
-        **kwargs
+        **kwargs,
     )
     model.transformer.load_state_dict(clip_model.transformer.state_dict())
     model.token_embedding.load_state_dict(clip_model.token_embedding.state_dict())
     model.positional_embedding.data.copy_(clip_model.positional_embedding.data)
     model.ln_final.load_state_dict(clip_model.ln_final.state_dict())
     if project_embed_dim == clip_model.text_projection.shape[1]:
-        print("=> Loading CLIP's text_projection, image_projection and logit_scale directly")
+        print(
+            "=> Loading CLIP's text_projection, image_projection and logit_scale directly"
+        )
         model.image_projection.data.copy_(clip_model.visual.proj.data)
         model.text_projection.data.copy_(clip_model.text_projection.data)
         model.logit_scale.data.copy_(clip_model.logit_scale.data)
@@ -492,28 +543,35 @@ def CLIP_OPENAI_TIMESFORMER_LARGE_336PX(
 
 
 def CLIP_OPENAI_TIMESFORMER_BASE_DISTILBERT_BASE(
-    num_frames=4, timesformer_gated_xattn=False, drop_path_rate=0, timesformer_freeze_space=False,
-    temperature_init=0.07, project_embed_dim=256, **kwargs,
+    num_frames=4,
+    timesformer_gated_xattn=False,
+    drop_path_rate=0,
+    timesformer_freeze_space=False,
+    temperature_init=0.07,
+    project_embed_dim=256,
+    **kwargs,
 ):
     vision_model = SpaceTimeTransformer(
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         ln_pre=True,
         act_layer=QuickGELU,
         is_tanh_gating=timesformer_gated_xattn,
         drop_path_rate=drop_path_rate,
     )
-    clip_model, _ = load_openai_clip('ViT-B/16', 'cpu')
+    clip_model, _ = load_openai_clip("ViT-B/16", "cpu")
     print("=> Loading CLIP (ViT-B/16) weights")
-    remapped_state_dict = remap_keys(clip_model.visual.state_dict(), transformer_layers=12)
+    remapped_state_dict = remap_keys(
+        clip_model.visual.state_dict(), transformer_layers=12
+    )
     res = vision_model.load_state_dict(remapped_state_dict, strict=False)
     print(res)
     if timesformer_freeze_space:
         print("=> Freeze the space part in TimeSformer")
         freeze_list, unfreeze_list = [], []
         for n, p in vision_model.named_parameters():
-            if n not in remapped_state_dict or n == 'cls_token':
+            if n not in remapped_state_dict or n == "cls_token":
                 p.requires_grad = True
                 unfreeze_list.append(n)
             else:
@@ -527,9 +585,11 @@ def CLIP_OPENAI_TIMESFORMER_BASE_DISTILBERT_BASE(
     vision_model.fc = nn.Identity()
 
     text_model = DistilBertModel.from_pretrained(
-        'distilbert-base-uncased',
+        "distilbert-base-uncased",
     )
-    kwargs.pop('text_use_cls_token')  # ignore args.use_cls_token since DistilBert does not have pooler on top
+    kwargs.pop(
+        "text_use_cls_token"
+    )  # ignore args.use_cls_token since DistilBert does not have pooler on top
     model = CLIP_HF(
         embed_dim=project_embed_dim,
         vision_width=vision_model.embed_dim,
@@ -546,30 +606,40 @@ def CLIP_OPENAI_TIMESFORMER_BASE_DISTILBERT_BASE(
 
 
 def CLIP_OPENAI_TIMESFORMER_LARGE_DISTILBERT_BASE(
-    num_frames=4, timesformer_gated_xattn=False, drop_path_rate=0, timesformer_freeze_space=False,
-    temperature_init=0.07, project_embed_dim=256, **kwargs,
+    num_frames=4,
+    timesformer_gated_xattn=False,
+    drop_path_rate=0,
+    timesformer_freeze_space=False,
+    temperature_init=0.07,
+    project_embed_dim=256,
+    **kwargs,
 ):
     vision_model = SpaceTimeTransformer(
-        img_size=224, patch_size=14,
-        embed_dim=1024, depth=24, num_heads=16,
+        img_size=224,
+        patch_size=14,
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         ln_pre=True,
         act_layer=QuickGELU,
         is_tanh_gating=timesformer_gated_xattn,
         drop_path_rate=drop_path_rate,
     )
-    clip_model, _ = load_openai_clip('ViT-L/14', 'cpu')
+    clip_model, _ = load_openai_clip("ViT-L/14", "cpu")
     print("=> Loading CLIP (ViT-L/14) weights")
-    remapped_state_dict = remap_keys(clip_model.visual.state_dict(), transformer_layers=24)
+    remapped_state_dict = remap_keys(
+        clip_model.visual.state_dict(), transformer_layers=24
+    )
     res = vision_model.load_state_dict(remapped_state_dict, strict=False)
     print(res)
     if timesformer_freeze_space:
         print("=> Freeze the space part in TimeSformer")
         freeze_list, unfreeze_list = [], []
         for n, p in vision_model.named_parameters():
-            if n not in remapped_state_dict or n == 'cls_token':
+            if n not in remapped_state_dict or n == "cls_token":
                 p.requires_grad = True
                 unfreeze_list.append(n)
             else:
@@ -583,9 +653,11 @@ def CLIP_OPENAI_TIMESFORMER_LARGE_DISTILBERT_BASE(
     vision_model.fc = nn.Identity()
 
     text_model = DistilBertModel.from_pretrained(
-        'distilbert-base-uncased',
+        "distilbert-base-uncased",
     )
-    kwargs.pop('text_use_cls_token')  # ignore args.use_cls_token since DistilBert does not have pooler on top
+    kwargs.pop(
+        "text_use_cls_token"
+    )  # ignore args.use_cls_token since DistilBert does not have pooler on top
     model = CLIP_HF(
         embed_dim=project_embed_dim,
         vision_width=vision_model.embed_dim,
@@ -602,30 +674,40 @@ def CLIP_OPENAI_TIMESFORMER_LARGE_DISTILBERT_BASE(
 
 
 def CLIP_OPENAI_TIMESFORMER_LARGE_336PX_DISTILBERT_BASE(
-    num_frames=4, timesformer_gated_xattn=False, drop_path_rate=0, timesformer_freeze_space=False,
-    temperature_init=0.07, project_embed_dim=256, **kwargs,
+    num_frames=4,
+    timesformer_gated_xattn=False,
+    drop_path_rate=0,
+    timesformer_freeze_space=False,
+    temperature_init=0.07,
+    project_embed_dim=256,
+    **kwargs,
 ):
     vision_model = SpaceTimeTransformer(
-        img_size=336, patch_size=14,
-        embed_dim=1024, depth=24, num_heads=16,
+        img_size=336,
+        patch_size=14,
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         ln_pre=True,
         act_layer=QuickGELU,
         is_tanh_gating=timesformer_gated_xattn,
         drop_path_rate=drop_path_rate,
     )
-    clip_model, _ = load_openai_clip('ViT-L/14@336px', 'cpu')
+    clip_model, _ = load_openai_clip("ViT-L/14@336px", "cpu")
     print("=> Loading CLIP (ViT-L/14@336px) weights")
-    remapped_state_dict = remap_keys(clip_model.visual.state_dict(), transformer_layers=24)
+    remapped_state_dict = remap_keys(
+        clip_model.visual.state_dict(), transformer_layers=24
+    )
     res = vision_model.load_state_dict(remapped_state_dict, strict=False)
     print(res)
     if timesformer_freeze_space:
         print("=> Freeze the space part in TimeSformer")
         freeze_list, unfreeze_list = [], []
         for n, p in vision_model.named_parameters():
-            if n not in remapped_state_dict or n == 'cls_token':
+            if n not in remapped_state_dict or n == "cls_token":
                 p.requires_grad = True
                 unfreeze_list.append(n)
             else:
@@ -639,9 +721,11 @@ def CLIP_OPENAI_TIMESFORMER_LARGE_336PX_DISTILBERT_BASE(
     vision_model.fc = nn.Identity()
 
     text_model = DistilBertModel.from_pretrained(
-        'distilbert-base-uncased',
+        "distilbert-base-uncased",
     )
-    kwargs.pop('text_use_cls_token')  # ignore args.use_cls_token since DistilBert does not have pooler on top
+    kwargs.pop(
+        "text_use_cls_token"
+    )  # ignore args.use_cls_token since DistilBert does not have pooler on top
     model = CLIP_HF(
         embed_dim=project_embed_dim,
         vision_width=vision_model.embed_dim,
@@ -660,8 +744,8 @@ def CLIP_OPENAI_TIMESFORMER_LARGE_336PX_DISTILBERT_BASE(
 def CLIP_HF_EGOVLP_DISTILBERT_BASE(num_frames=4, project_embed_dim=256, **kwargs):
     vision_model = SpaceTimeTransformer(
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
     )
     vit_model = timm.models.vision_transformer.vit_base_patch16_224(pretrained=True)
     vision_model.load_state_dict(vit_model.state_dict(), strict=False)
@@ -670,10 +754,12 @@ def CLIP_HF_EGOVLP_DISTILBERT_BASE(num_frames=4, project_embed_dim=256, **kwargs
     vision_model.fc = nn.Identity()
 
     text_model = DistilBertModel.from_pretrained(
-        'distilbert-base-uncased',
+        "distilbert-base-uncased",
     )
-    kwargs.pop('text_use_cls_token')  # ignore args.use_cls_token since DistilBert does not have pooler on top
-    kwargs.update({'projection': 'frozen_in_time'})
+    kwargs.pop(
+        "text_use_cls_token"
+    )  # ignore args.use_cls_token since DistilBert does not have pooler on top
+    kwargs.update({"projection": "frozen_in_time"})
     model = CLIP_HF(
         embed_dim=project_embed_dim,
         vision_width=vision_model.embed_dim,
@@ -688,11 +774,17 @@ def CLIP_HF_EGOVLP_DISTILBERT_BASE(num_frames=4, project_embed_dim=256, **kwargs
     return model
 
 
-def CLIP_HF_TIMESFORMER_DISTILBERT_BASE(num_frames=4, drop_path_rate=0, temperature_init=0.07, project_embed_dim=256, **kwargs):
+def CLIP_HF_TIMESFORMER_DISTILBERT_BASE(
+    num_frames=4,
+    drop_path_rate=0,
+    temperature_init=0.07,
+    project_embed_dim=256,
+    **kwargs,
+):
     vision_model = SpaceTimeTransformer(
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         drop_path_rate=drop_path_rate,
     )
     vit_model = timm.models.vision_transformer.vit_base_patch16_224(pretrained=True)
@@ -702,9 +794,11 @@ def CLIP_HF_TIMESFORMER_DISTILBERT_BASE(num_frames=4, drop_path_rate=0, temperat
     vision_model.fc = nn.Identity()
 
     text_model = DistilBertModel.from_pretrained(
-        'distilbert-base-uncased',
+        "distilbert-base-uncased",
     )
-    kwargs.pop('text_use_cls_token')  # ignore args.use_cls_token since DistilBert does not have pooler on top
+    kwargs.pop(
+        "text_use_cls_token"
+    )  # ignore args.use_cls_token since DistilBert does not have pooler on top
     model = CLIP_HF(
         embed_dim=project_embed_dim,
         vision_width=vision_model.embed_dim,
@@ -720,31 +814,38 @@ def CLIP_HF_TIMESFORMER_DISTILBERT_BASE(num_frames=4, drop_path_rate=0, temperat
     return model
 
 
-def VCLM_OPENAI_VITB16_GPT2_LARGE(gated_xattn=False, freeze_lm_vclm=False,
-                                  freeze_visual_vclm=False, freeze_visual_vclm_temporal=False, **kwargs):
-    clip_model, _ = load_openai_clip('ViT-B/16', 'cpu')
+def VCLM_OPENAI_VITB16_GPT2_LARGE(
+    gated_xattn=False,
+    freeze_lm_vclm=False,
+    freeze_visual_vclm=False,
+    freeze_visual_vclm_temporal=False,
+    **kwargs,
+):
+    clip_model, _ = load_openai_clip("ViT-B/16", "cpu")
     vision_model = clip_model.visual
-    kwargs.pop('text_use_cls_token')
+    kwargs.pop("text_use_cls_token")
 
     gpt2 = GPT2LMHeadModel.from_pretrained(
         "gpt2-large",
         use_cache=False,
     )
-    new_config = augment_gpt2_config(gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn)
+    new_config = augment_gpt2_config(
+        gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn
+    )
     text_decoder = GatedGPT2LMHeadModel(new_config)
     for n, p in gpt2.named_parameters():
-        rsetattr(text_decoder, n + '.data', p.data)
+        rsetattr(text_decoder, n + ".data", p.data)
 
     if freeze_lm_vclm:
-        print('Freeze the LM part of TextDecoder of VCLM')
+        print("Freeze the LM part of TextDecoder of VCLM")
         text_decoder.freeze_lm_weights()
 
     if freeze_visual_vclm:
-        print('Freeze the spatial part of VideoEncoder of VCLM')
+        print("Freeze the spatial part of VideoEncoder of VCLM")
         vision_model.freeze_spatial_weights()
 
     if freeze_visual_vclm_temporal:
-        print('Freeze the temporal part of VideoEncoder of VCLM')
+        print("Freeze the temporal part of VideoEncoder of VCLM")
         vision_model.freeze_temporal_weights()
 
     model = VCLM_HF(
@@ -761,31 +862,38 @@ def VCLM_OPENAI_VITB16_GPT2_LARGE(gated_xattn=False, freeze_lm_vclm=False,
     return model
 
 
-def VCLM_OPENAI_VITB16_GPT2_XL(gated_xattn=False, freeze_lm_vclm=False,
-                               freeze_visual_vclm=False, freeze_visual_vclm_temporal=False, **kwargs):
-    clip_model, _ = load_openai_clip('ViT-B/16', 'cpu')
+def VCLM_OPENAI_VITB16_GPT2_XL(
+    gated_xattn=False,
+    freeze_lm_vclm=False,
+    freeze_visual_vclm=False,
+    freeze_visual_vclm_temporal=False,
+    **kwargs,
+):
+    clip_model, _ = load_openai_clip("ViT-B/16", "cpu")
     vision_model = clip_model.visual
-    kwargs.pop('text_use_cls_token')
+    kwargs.pop("text_use_cls_token")
 
     gpt2 = GPT2LMHeadModel.from_pretrained(
         "gpt2-xl",
         use_cache=False,
     )
-    new_config = augment_gpt2_config(gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn)
+    new_config = augment_gpt2_config(
+        gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn
+    )
     text_decoder = GatedGPT2LMHeadModel(new_config)
     for n, p in gpt2.named_parameters():
-        rsetattr(text_decoder, n + '.data', p.data)
+        rsetattr(text_decoder, n + ".data", p.data)
 
     if freeze_lm_vclm:
-        print('Freeze the LM part of TextDecoder of VCLM')
+        print("Freeze the LM part of TextDecoder of VCLM")
         text_decoder.freeze_lm_weights()
 
     if freeze_visual_vclm:
-        print('Freeze the spatial part of VideoEncoder of VCLM')
+        print("Freeze the spatial part of VideoEncoder of VCLM")
         vision_model.freeze_spatial_weights()
 
     if freeze_visual_vclm_temporal:
-        print('Freeze the temporal part of VideoEncoder of VCLM')
+        print("Freeze the temporal part of VideoEncoder of VCLM")
         vision_model.freeze_temporal_weights()
 
     model = VCLM_HF(
@@ -802,31 +910,38 @@ def VCLM_OPENAI_VITB16_GPT2_XL(gated_xattn=False, freeze_lm_vclm=False,
     return model
 
 
-def VCLM_OPENAI_VITL14_GPT2_XL(gated_xattn=False, freeze_lm_vclm=False,
-                               freeze_visual_vclm=False, freeze_visual_vclm_temporal=False, **kwargs):
-    clip_model, _ = load_openai_clip('ViT-L/14', 'cpu')
+def VCLM_OPENAI_VITL14_GPT2_XL(
+    gated_xattn=False,
+    freeze_lm_vclm=False,
+    freeze_visual_vclm=False,
+    freeze_visual_vclm_temporal=False,
+    **kwargs,
+):
+    clip_model, _ = load_openai_clip("ViT-L/14", "cpu")
     vision_model = clip_model.visual
-    kwargs.pop('text_use_cls_token')
+    kwargs.pop("text_use_cls_token")
 
     gpt2 = GPT2LMHeadModel.from_pretrained(
         "gpt2-xl",
         use_cache=False,
     )
-    new_config = augment_gpt2_config(gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn)
+    new_config = augment_gpt2_config(
+        gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn
+    )
     text_decoder = GatedGPT2LMHeadModel(new_config)
     for n, p in gpt2.named_parameters():
-        rsetattr(text_decoder, n + '.data', p.data)
+        rsetattr(text_decoder, n + ".data", p.data)
 
     if freeze_lm_vclm:
-        print('Freeze the LM part of TextDecoder of VCLM')
+        print("Freeze the LM part of TextDecoder of VCLM")
         text_decoder.freeze_lm_weights()
 
     if freeze_visual_vclm:
-        print('Freeze the spatial part of VideoEncoder of VCLM')
+        print("Freeze the spatial part of VideoEncoder of VCLM")
         vision_model.freeze_spatial_weights()
 
     if freeze_visual_vclm_temporal:
-        print('Freeze the temporal part of VideoEncoder of VCLM')
+        print("Freeze the temporal part of VideoEncoder of VCLM")
         vision_model.freeze_temporal_weights()
 
     model = VCLM_HF(
@@ -843,31 +958,38 @@ def VCLM_OPENAI_VITL14_GPT2_XL(gated_xattn=False, freeze_lm_vclm=False,
     return model
 
 
-def VCLM_OPENAI_VITL14_336PX_GPT2_XL(gated_xattn=False, freeze_lm_vclm=False,
-                                     freeze_visual_vclm=False, freeze_visual_vclm_temporal=False, **kwargs):
-    clip_model, _ = load_openai_clip('ViT-L/14@336px', 'cpu')
+def VCLM_OPENAI_VITL14_336PX_GPT2_XL(
+    gated_xattn=False,
+    freeze_lm_vclm=False,
+    freeze_visual_vclm=False,
+    freeze_visual_vclm_temporal=False,
+    **kwargs,
+):
+    clip_model, _ = load_openai_clip("ViT-L/14@336px", "cpu")
     vision_model = clip_model.visual
-    kwargs.pop('text_use_cls_token')
+    kwargs.pop("text_use_cls_token")
 
     gpt2 = GPT2LMHeadModel.from_pretrained(
         "gpt2-xl",
         use_cache=False,
     )
-    new_config = augment_gpt2_config(gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn)
+    new_config = augment_gpt2_config(
+        gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn
+    )
     text_decoder = GatedGPT2LMHeadModel(new_config)
     for n, p in gpt2.named_parameters():
-        rsetattr(text_decoder, n + '.data', p.data)
+        rsetattr(text_decoder, n + ".data", p.data)
 
     if freeze_lm_vclm:
-        print('Freeze the LM part of TextDecoder of VCLM')
+        print("Freeze the LM part of TextDecoder of VCLM")
         text_decoder.freeze_lm_weights()
 
     if freeze_visual_vclm:
-        print('Freeze the spatial part of VideoEncoder of VCLM')
+        print("Freeze the spatial part of VideoEncoder of VCLM")
         vision_model.freeze_spatial_weights()
 
     if freeze_visual_vclm_temporal:
-        print('Freeze the temporal part of VideoEncoder of VCLM')
+        print("Freeze the temporal part of VideoEncoder of VCLM")
         vision_model.freeze_temporal_weights()
 
     model = VCLM_HF(
@@ -896,15 +1018,17 @@ def VCLM_OPENAI_TIMESFORMER_BASE_GPT2(
 ):
     vision_model = SpaceTimeTransformer(
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         ln_pre=True,
         act_layer=QuickGELU,
         is_tanh_gating=timesformer_gated_xattn,
     )
-    clip_model, _ = load_openai_clip('ViT-B/16', 'cpu')
+    clip_model, _ = load_openai_clip("ViT-B/16", "cpu")
     print("=> Loading CLIP (ViT-B/16) weights")
-    remapped_state_dict = remap_keys(clip_model.visual.state_dict(), transformer_layers=12)
+    remapped_state_dict = remap_keys(
+        clip_model.visual.state_dict(), transformer_layers=12
+    )
     res = vision_model.load_state_dict(remapped_state_dict, strict=False)
     print(res)
     vision_model.head = nn.Identity()
@@ -915,23 +1039,25 @@ def VCLM_OPENAI_TIMESFORMER_BASE_GPT2(
         "gpt2",
         use_cache=False,
     )
-    new_config = augment_gpt2_config(gpt2.config, cross_attn_freq=1, gated_xattn=gated_xattn)
+    new_config = augment_gpt2_config(
+        gpt2.config, cross_attn_freq=1, gated_xattn=gated_xattn
+    )
     text_decoder = GatedGPT2LMHeadModel(new_config)
     if not random_init_gpt2:
-        print('Loading LM from pretrained weights..')
+        print("Loading LM from pretrained weights..")
         for n, p in gpt2.named_parameters():
-            rsetattr(text_decoder, n + '.data', p.data)
+            rsetattr(text_decoder, n + ".data", p.data)
 
     if freeze_lm_vclm:
-        print('Freeze the LM part of TextDecoder of VCLM')
+        print("Freeze the LM part of TextDecoder of VCLM")
         text_decoder.freeze_lm_weights()
 
     if freeze_visual_vclm:
-        print('Freeze the spatial part of VideoEncoder of VCLM')
+        print("Freeze the spatial part of VideoEncoder of VCLM")
         vision_model.freeze_spatial_weights()
 
     if freeze_visual_vclm_temporal:
-        print('Freeze the temporal part of VideoEncoder of VCLM')
+        print("Freeze the temporal part of VideoEncoder of VCLM")
         vision_model.freeze_temporal_weights()
 
     model = VCLM_HF(
@@ -959,15 +1085,17 @@ def VCLM_OPENAI_TIMESFORMER_BASE_GPT2_XL(
 ):
     vision_model = SpaceTimeTransformer(
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         ln_pre=True,
         act_layer=QuickGELU,
         is_tanh_gating=timesformer_gated_xattn,
     )
-    clip_model, _ = load_openai_clip('ViT-B/16', 'cpu')
+    clip_model, _ = load_openai_clip("ViT-B/16", "cpu")
     print("=> Loading CLIP (ViT-B/16) weights")
-    remapped_state_dict = remap_keys(clip_model.visual.state_dict(), transformer_layers=12)
+    remapped_state_dict = remap_keys(
+        clip_model.visual.state_dict(), transformer_layers=12
+    )
     res = vision_model.load_state_dict(remapped_state_dict, strict=False)
     print(res)
     vision_model.head = nn.Identity()
@@ -978,21 +1106,23 @@ def VCLM_OPENAI_TIMESFORMER_BASE_GPT2_XL(
         "gpt2-xl",
         use_cache=False,
     )
-    new_config = augment_gpt2_config(gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn)
+    new_config = augment_gpt2_config(
+        gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn
+    )
     text_decoder = GatedGPT2LMHeadModel(new_config)
     for n, p in gpt2.named_parameters():
-        rsetattr(text_decoder, n + '.data', p.data)
+        rsetattr(text_decoder, n + ".data", p.data)
 
     if freeze_lm_vclm:
-        print('Freeze the LM part of TextDecoder of VCLM')
+        print("Freeze the LM part of TextDecoder of VCLM")
         text_decoder.freeze_lm_weights()
 
     if freeze_visual_vclm:
-        print('Freeze the spatial part of VideoEncoder of VCLM')
+        print("Freeze the spatial part of VideoEncoder of VCLM")
         vision_model.freeze_spatial_weights()
 
     if freeze_visual_vclm_temporal:
-        print('Freeze the temporal part of VideoEncoder of VCLM')
+        print("Freeze the temporal part of VideoEncoder of VCLM")
         vision_model.freeze_temporal_weights()
 
     model = VCLM_HF(
@@ -1019,18 +1149,23 @@ def VCLM_OPENAI_TIMESFORMER_LARGE_GPT2_XL(
     **kwargs,
 ):
     vision_model = SpaceTimeTransformer(
-        img_size=224, patch_size=14,
-        embed_dim=1024, depth=24, num_heads=16,
+        img_size=224,
+        patch_size=14,
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         ln_pre=True,
         act_layer=QuickGELU,
         is_tanh_gating=timesformer_gated_xattn,
     )
-    clip_model, _ = load_openai_clip('ViT-L/14', 'cpu')
+    clip_model, _ = load_openai_clip("ViT-L/14", "cpu")
     print("=> Loading CLIP (ViT-L/14x) weights")
-    remapped_state_dict = remap_keys(clip_model.visual.state_dict(), transformer_layers=24)
+    remapped_state_dict = remap_keys(
+        clip_model.visual.state_dict(), transformer_layers=24
+    )
     res = vision_model.load_state_dict(remapped_state_dict, strict=False)
     print(res)
     vision_model.head = nn.Identity()
@@ -1041,21 +1176,23 @@ def VCLM_OPENAI_TIMESFORMER_LARGE_GPT2_XL(
         "gpt2-xl",
         use_cache=False,
     )
-    new_config = augment_gpt2_config(gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn)
+    new_config = augment_gpt2_config(
+        gpt2.config, cross_attn_freq=2, gated_xattn=gated_xattn
+    )
     text_decoder = GatedGPT2LMHeadModel(new_config)
     for n, p in gpt2.named_parameters():
-        rsetattr(text_decoder, n + '.data', p.data)
+        rsetattr(text_decoder, n + ".data", p.data)
 
     if freeze_lm_vclm:
-        print('Freeze the LM part of TextDecoder of VCLM')
+        print("Freeze the LM part of TextDecoder of VCLM")
         text_decoder.freeze_lm_weights()
 
     if freeze_visual_vclm:
-        print('Freeze the spatial part of VideoEncoder of VCLM')
+        print("Freeze the spatial part of VideoEncoder of VCLM")
         vision_model.freeze_spatial_weights()
 
     if freeze_visual_vclm_temporal:
-        print('Freeze the temporal part of VideoEncoder of VCLM')
+        print("Freeze the temporal part of VideoEncoder of VCLM")
         vision_model.freeze_temporal_weights()
 
     model = VCLM_HF(
@@ -1079,21 +1216,26 @@ def VCLM_OPENAI_TIMESFORMER_LARGE_GPT2(
     freeze_visual_vclm_temporal=False,
     num_frames=4,
     timesformer_gated_xattn=False,
-    **kwargs
+    **kwargs,
 ):
     vision_model = SpaceTimeTransformer(
-        img_size=224, patch_size=14,
-        embed_dim=1024, depth=24, num_heads=16,
+        img_size=224,
+        patch_size=14,
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         ln_pre=True,
         act_layer=QuickGELU,
         is_tanh_gating=timesformer_gated_xattn,
     )
-    clip_model, _ = load_openai_clip('ViT-L/14', 'cpu')
+    clip_model, _ = load_openai_clip("ViT-L/14", "cpu")
     print("=> Loading CLIP (ViT-L/14x) weights")
-    remapped_state_dict = remap_keys(clip_model.visual.state_dict(), transformer_layers=24)
+    remapped_state_dict = remap_keys(
+        clip_model.visual.state_dict(), transformer_layers=24
+    )
     res = vision_model.load_state_dict(remapped_state_dict, strict=False)
     print(res)
     vision_model.head = nn.Identity()
@@ -1104,21 +1246,23 @@ def VCLM_OPENAI_TIMESFORMER_LARGE_GPT2(
         "gpt2",
         use_cache=False,
     )
-    new_config = augment_gpt2_config(gpt2.config, cross_attn_freq=1, gated_xattn=gated_xattn)
+    new_config = augment_gpt2_config(
+        gpt2.config, cross_attn_freq=1, gated_xattn=gated_xattn
+    )
     text_decoder = GatedGPT2LMHeadModel(new_config)
     for n, p in gpt2.named_parameters():
-        rsetattr(text_decoder, n + '.data', p.data)
+        rsetattr(text_decoder, n + ".data", p.data)
 
     if freeze_lm_vclm:
-        print('Freeze the LM part of TextDecoder of VCLM')
+        print("Freeze the LM part of TextDecoder of VCLM")
         text_decoder.freeze_lm_weights()
 
     if freeze_visual_vclm:
-        print('Freeze the spatial part of VideoEncoder of VCLM')
+        print("Freeze the spatial part of VideoEncoder of VCLM")
         vision_model.freeze_spatial_weights()
 
     if freeze_visual_vclm_temporal:
-        print('Freeze the temporal part of VideoEncoder of VCLM')
+        print("Freeze the temporal part of VideoEncoder of VCLM")
         vision_model.freeze_temporal_weights()
 
     model = VCLM_HF(
@@ -1145,43 +1289,50 @@ def VCLM_OPENAI_TIMESFORMER_LARGE_336PX_GPT2_XL(
     **kwargs,
 ):
     vision_model = SpaceTimeTransformer(
-        img_size=336, patch_size=14,
-        embed_dim=1024, depth=24, num_heads=16,
+        img_size=336,
+        patch_size=14,
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
         num_frames=num_frames,
-        time_init='zeros',
-        attention_style='frozen-in-time',
+        time_init="zeros",
+        attention_style="frozen-in-time",
         ln_pre=True,
         act_layer=QuickGELU,
         is_tanh_gating=timesformer_gated_xattn,
     )
-    clip_model, _ = load_openai_clip('ViT-L/14@336px', 'cpu')
+    clip_model, _ = load_openai_clip("ViT-L/14@336px", "cpu")
     print("=> Loading CLIP (ViT-L/14@336px) weights")
-    remapped_state_dict = remap_keys(clip_model.visual.state_dict(), transformer_layers=24)
+    remapped_state_dict = remap_keys(
+        clip_model.visual.state_dict(), transformer_layers=24
+    )
     res = vision_model.load_state_dict(remapped_state_dict, strict=False)
+
     print(res)
     vision_model.head = nn.Identity()
     vision_model.pre_logits = nn.Identity()
     vision_model.fc = nn.Identity()
-
     gpt2 = GPT2LMHeadModel.from_pretrained(
         "gpt2-xl",
-        use_cache=False,
+        use_cache=True,
     )
-    new_config = augment_gpt2_config(gpt2.config, cross_attn_freq=3, gated_xattn=gated_xattn)
+
+    new_config = augment_gpt2_config(
+        gpt2.config, cross_attn_freq=3, gated_xattn=gated_xattn
+    )
     text_decoder = GatedGPT2LMHeadModel(new_config)
     for n, p in gpt2.named_parameters():
-        rsetattr(text_decoder, n + '.data', p.data)
-
+        rsetattr(text_decoder, n + ".data", p.data)
     if freeze_lm_vclm:
-        print('Freeze the LM part of TextDecoder of VCLM')
+        print("Freeze the LM part of TextDecoder of VCLM")
         text_decoder.freeze_lm_weights()
 
     if freeze_visual_vclm:
-        print('Freeze the spatial part of VideoEncoder of VCLM')
+        print("Freeze the spatial part of VideoEncoder of VCLM")
         vision_model.freeze_spatial_weights()
 
     if freeze_visual_vclm_temporal:
-        print('Freeze the temporal part of VideoEncoder of VCLM')
+        print("Freeze the temporal part of VideoEncoder of VCLM")
         vision_model.freeze_temporal_weights()
 
     model = VCLM_HF(
@@ -1199,20 +1350,20 @@ def VCLM_OPENAI_TIMESFORMER_LARGE_336PX_GPT2_XL(
 
 
 def CLIP_OPENAI_VITB32(**kwargs):
-    model, _ = load_openai_clip('ViT-B/32', 'cpu')
+    model, _ = load_openai_clip("ViT-B/32", "cpu")
     return model
 
 
 def CLIP_OPENAI_VITB16(**kwargs):
-    model, _ = load_openai_clip('ViT-B/16', 'cpu')
+    model, _ = load_openai_clip("ViT-B/16", "cpu")
     return model
 
 
 def CLIP_OPENAI_VITL14(**kwargs):
-    model, _ = load_openai_clip('ViT-L/14', 'cpu')
+    model, _ = load_openai_clip("ViT-L/14", "cpu")
     return model
 
 
 def CLIP_OPENAI_VITL14_336PX(**kwargs):
-    model, _ = load_openai_clip('ViT-L/14@336px', 'cpu')
+    model, _ = load_openai_clip("ViT-L/14@336px", "cpu")
     return model
