@@ -1,7 +1,7 @@
 timm==0.5.4
-torch==2.1.0
+torch
 torchvision
-decord==0.6.0
+decord
 einops==0.4.1
 pandas==1.4.2
 pytorchvideo==0.1.5
