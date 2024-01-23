@@ -123,9 +123,11 @@ if __name__ == "__main__":
     This script creates a csv file with gemini predictins for the EgoSchema dataset.
     It evaluates the model on videos of different speeds, and saves the results to gemini_pred.csv
 
-    Data: The videos were previously uploaded to GCP, and questions are loaded from
+    Data: The videos were previously uploaded to GCP (download_test_videos.py downloads the videos,
+    then we upload them to a folder in GCP). The questions are loaded from
     questions.json (questions for the whole dataset) + subset_answers.json (quesitons + answers for a subset)
     The script only looks at 100 videos from the subset, due to funding limitatins.
+    To evaluate the results, process_gemini_pred.ipnb is used.
 
     The prompt is the question + Answer Chices, and a custom post string asking to identify the ID (not tuned much).
     After the results are saved
